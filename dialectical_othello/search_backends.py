@@ -33,7 +33,8 @@ from typing import Any
 from dialectical_games.arguments import MoveProbe
 from dialectical_games.search_backend import SearchBackend, SearchBackendRegistry
 
-from dialectical_othello.board import OthelloBoard, OthelloMove, _square_from_algebraic
+from dialectical_othello.board import OthelloBoard, OthelloMove
+from dialectical_othello.probe import OthelloMoveProbe
 from dialectical_othello.search import INF, SearchTimeout, alphabeta
 
 
@@ -133,19 +134,20 @@ class OthelloAlphaBetaBackend:
 
 
 def _move_for_probe(probe: MoveProbe) -> OthelloMove:
-    """Reconstruct the :class:`OthelloMove` from ``probe.move_id``.
+    """Return the :class:`OthelloMove` the probe was built for.
 
-    The core ``MoveProbe`` carries only the string ``move_id`` (the
-    cartridge's stable move identifier). For Othello that string is
-    either ``"pass"`` or two-character algebraic notation (``"d3"``,
-    ``"e6"``, ...). Chunk 4 will introduce a typed Othello ``MoveProbe``
-    subclass that carries the move directly; until then the backend
-    reconstructs from the id.
+    Chunk 4 introduced the typed :class:`OthelloMoveProbe` subclass that
+    carries the move directly as a cartridge-extension field; the
+    backend reads it without parsing the algebraic ``move_id`` string.
+    A probe that is not an :class:`OthelloMoveProbe` is a misuse — the
+    Othello backend is registered only against the Othello cartridge.
     """
-    move_id = probe.move_id
-    if move_id == "pass":
-        return OthelloMove.pass_move()
-    return OthelloMove(square=_square_from_algebraic(move_id))
+    if not isinstance(probe, OthelloMoveProbe):
+        raise TypeError(
+            "OthelloAlphaBetaBackend requires OthelloMoveProbe instances; "
+            f"got {type(probe).__name__}"
+        )
+    return probe.move
 
 
 SEARCH_BACKEND_REGISTRY: SearchBackendRegistry = SearchBackendRegistry()

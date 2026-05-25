@@ -22,7 +22,7 @@ from dialectical_games.arguments import MoveProbe
 
 from dialectical_games.scheme import Tier
 
-from dialectical_othello.board import OthelloBoard
+from dialectical_othello.board import OthelloBoard, OthelloMove
 from dialectical_othello.core_labels import core_labels_for_probe
 from dialectical_othello.evidence import (
     ArgumentEvidence,
@@ -37,13 +37,16 @@ class OthelloMoveProbe(MoveProbe):
     """An Othello move probe.
 
     Inherits the core ``MoveProbe`` fields (``move_id``, ``reasons``,
-    ``objections``, ``child_eval``, ``contested``, ...) and adds two
-    cartridge-extension fields carrying the typed evidence the witness
-    producers emitted. The graded policy (chunk 4) reads the typed
-    evidence for per-position CDF construction; the core graph builder
-    reads the translated ``reasons`` / ``objections`` strings.
+    ``objections``, ``child_eval``, ``contested``, ...) and adds the
+    cartridge-extension fields: the typed :class:`OthelloMove` so the
+    search backend reads the move directly (no algebraic round-trip),
+    and the typed :class:`ArgumentEvidence` tuples the graded policy
+    consumes for per-position CDF construction. The core graph builder
+    reads the translated ``reasons`` / ``objections`` strings on the
+    inherited fields.
     """
 
+    move: OthelloMove = field(default_factory=OthelloMove.pass_move)
     reason_evidence: tuple[ArgumentEvidence, ...] = field(default_factory=tuple)
     objection_evidence: tuple[ArgumentEvidence, ...] = field(default_factory=tuple)
 
@@ -90,6 +93,7 @@ def _build_probe_for_move(parent: OthelloBoard, move) -> OthelloMoveProbe:  # ty
         objections=core_objections,
         child_eval=_evaluate_for_parent_mover(parent, child),
         contested=contested,
+        move=move,
         reason_evidence=reasons_t,
         objection_evidence=objections_t,
     )
